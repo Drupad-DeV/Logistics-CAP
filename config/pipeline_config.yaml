@@ -1,0 +1,32 @@
+pipeline:
+  name: "Logistics Data Pipeline"
+  version: "1.0.0"
+  
+data_sources:
+  raw_data_path: "data/raw"
+  processed_data_path: "data/processed"
+  cleaned_data_path: "data/cleaned"
+
+cleaning_rules:
+  remove_duplicates: true
+  handle_missing_values: true
+  missing_value_strategy: "fill"  # Options: fill, drop, interpolate
+  date_format: "%Y-%m-%d"
+  
+validation_rules:
+  required_columns:
+    - shipment_id
+    - origin
+    - destination
+    - shipment_date
+  
+  data_types:
+    shipment_id: "string"
+    quantity: "integer"
+    weight: "float"
+    cost: "float"
+
+output:
+  format: "csv"
+  encoding: "utf-8"
+  compression: null
