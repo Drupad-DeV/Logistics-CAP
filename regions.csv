@@ -1,0 +1,9 @@
+region_id,region_name,country
+R01,North,IN
+R02,South,IN
+R03,East,IN
+R04,West,IN
+R05,Central,IN
+R06,Northeast,IN
+R07,Northwest,IN
+R08,Southeast,IN

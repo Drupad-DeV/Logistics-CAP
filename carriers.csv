@@ -1,0 +1,16 @@
+carrier_id,carrier_name,mode,sla_days,is_active
+C01,BlueDart,Air,2,Y
+C02,Delhivery,Road,4,Y
+C03,DTDC,Road,5,Y
+C04,EcomExpress,Road,5,Y
+C05,FedEx,Air,3,Y
+C06,DHL,Air,3,Y
+C07,IndiaPost,Rail,7,Y
+C08,XpressBees,Road,5,Y
+C09,ShadowCarrier,Road,6,Y
+C10,QuickShip,Road,3,Y
+C11,OceanLink,Sea,10,Y
+C12,AirSwift,Air,2,Y
+C13,RailJet,Rail,6,Y
+C14,CargoMax,Road,4,Y
+C15,SkyParcel,Air,2,Y
