@@ -1,16 +1,17 @@
-# Capstone 1 – Logistics Cost & Delivery Analytics  
-## Updated Dataset Data Dictionary (Post Scale-Up)
+# Capstone 1 – Logistics Cost & Delivery Analytics Dataset
+## Data Dictionary (Updated Post Scale-Up)
 
 ---
 
 ## Overview
 
-This data dictionary documents the **final dataset state** after scaling the fact table by appending synthetic data while preserving schema, foreign-key integrity, and business realism.
+This document describes the final dataset state after scaling up the original sample by appending synthetic data while maintaining complete schema compatibility, foreign-key integrity, and business realism. 
 
-- Architecture: ADLS Gen2 + ADF + Databricks + Power BI  
-- Pattern: Medallion (Bronze → Silver → Gold)  
-- Modeling Target: Star Schema  
-- Validation: Referential integrity enforced using distinct FK domain comparison  
+The dataset follows enterprise patterns:
+- **Architecture**: ADLS Gen2 + ADF + Databricks + Power BI
+- **Architecture Pattern**: Medallion (Bronze → Silver → Gold) 
+- **Modeling Target**: Star Schema
+- **Data Quality Validation**: Referential integrity via distinct FK domain comparison
 
 ---
 
@@ -18,38 +19,33 @@ This data dictionary documents the **final dataset state** after scaling the fac
 
 ### shipments_daily.csv
 
-**Role:** Fact table (shipment transactions)  
-**Grain:** 1 row = 1 shipment  
-**Source:**  
-- Original daily extract (~3,060 rows, including duplicates)  
-- Appended synthetic data (incremental, scalable)
+**Business Role**: Fact table containing shipment transactions  
+**Grain**: 1 row = 1 shipment record  
+**Data Sources**: 
+- Original daily extract (3,060 rows including intentional duplicates)
+- Appended synthetic data (configurable scale: 500K / 1M / 2.5M rows)
 
-**Current Volume:**  
-- Original: ~3,060 rows  
-- Appended: Configurable (500K / 1M / up to ~2.5M)  
-- Total: Original + Appended rows
+**Current Volume**: Original rows + appended synthetic rows
 
----
-
-### Fact Columns
+### Fact Table Columns
 
 | Column Name | Data Type | Nullable | Description |
-|------------|----------|----------|------------|
-| shipment_id | string | No | Business shipment identifier; duplicates intentionally present |
-| warehouse_id | string | No | Warehouse code (FK → warehouses.warehouse_id) |
-| region_id | string | No | Region code (FK → regions.region_id) |
-| carrier_id | string | Yes | Carrier code (FK → carriers.carrier_id); ~5% NULLs allowed |
-| shipment_cost | decimal | Yes | Shipment cost; NULLs, zero/negative, and outliers included |
-| delivery_status | string | No | Delivered / In Transit / Delayed |
-| is_fragile | string | No | Y / N |
-| shipment_date | date | No | Shipment creation date |
-| delivery_date | date | Yes | Delivery date; derived from shipment_date + delivery_days |
-| package_weight_kg | decimal | No | Package weight in kilograms |
-| declared_value_inr | decimal | No | Declared shipment value (INR) |
-| payment_type | string | No | Prepaid / COD |
-| priority_level | string | No | Low / Medium / High |
-| created_ts | timestamp | No | Record creation timestamp (ordering, dedup support) |
-| delivery_days | int | No | Delivery duration in days (generated; originally NULL) |
+|-------------|-----------|----------|-------------|
+| `shipment_id` | string | No | Business shipment identifier. Duplicates intentionally present for deduplication testing. |
+| `warehouse_id` | string | No | Warehouse code. Foreign key references `warehouses.warehouse_id`. |
+| `region_id` | string | No | Region code. Foreign key references `regions.region_id`. Derived from warehouse location. |
+| `carrier_id` | string | Yes | Carrier code. Foreign key references `carriers.carrier_id`. Approximately 5% records contain NULL values. |
+| `shipment_cost` | decimal | Yes | Shipment cost in INR. Contains NULL values, zero values, negative outliers, and extreme high values for data quality testing. |
+| `delivery_status` | string | No | Final delivery status. Values: Delivered / In Transit / Delayed. |
+| `is_fragile` | string | No | Fragile flag. Values: Y / N. |
+| `shipment_date` | date | No | Date when shipment record was created in the system. |
+| `delivery_date` | date | Yes | Actual delivery date. Derived as `shipment_date + delivery_days`. NULL values present in source data. |
+| `package_weight_kg` | decimal | No | Package weight measured in kilograms. |
+| `declared_value_inr` | decimal | No | Declared shipment value in Indian Rupees. |
+| `payment_type` | string | No | Payment collection method. Values: Prepaid / COD. |
+| `priority_level` | string | No | Service priority level. Values: Low / Medium / High. |
+| `created_ts` | timestamp | No | Record creation timestamp. Used for incremental processing and deduplication (latest record wins). |
+| `delivery_days` | int | No | Calculated delivery duration in days. Generated from originally NULL values in source data. |
 
 ---
 
@@ -57,180 +53,148 @@ This data dictionary documents the **final dataset state** after scaling the fac
 
 ### warehouses.csv
 
-**Rows:** 40  
-**Role:** Warehouse dimension
+**Row Count**: 40 rows  
+**Business Role**: Warehouse dimension (master data)
 
-| Column |
-|-------|
-| warehouse_id (PK) |
-| warehouse_name |
-| city |
-| state |
-| region_id (FK → regions.region_id) |
-| capacity_tpd |
-| is_active |
-
----
+**Columns**:
+- `warehouse_id` (Primary Key)
+- `warehouse_name`
+- `city`
+- `state`
+- `region_id` (Foreign Key → `regions.region_id`)
+- `capacity_tpd` (Tons Per Day capacity)
+- `is_active` (Y/N status flag)
 
 ### carriers.csv
 
-**Rows:** 15  
-**Role:** Carrier / logistics partner dimension
+**Row Count**: 15 rows  
+**Business Role**: Carrier and logistics partner dimension
 
-| Column |
-|-------|
-| carrier_id (PK) |
-| carrier_name |
-| mode (Air / Road / Rail / Sea) |
-| sla_days |
-| is_active |
-
----
+**Columns**:
+- `carrier_id` (Primary Key)
+- `carrier_name`
+- `mode` (Transport mode: Air / Road / Rail / Sea)
+- `sla_days` (Service Level Agreement days)
+- `is_active` (Y/N status flag)
 
 ### regions.csv
 
-**Rows:** 8  
-**Role:** Geographic dimension
+**Row Count**: 8 rows  
+**Business Role**: Geographic region dimension
 
-| Column |
-|-------|
-| region_id (PK) |
-| region_name |
-| country |
-
----
+**Columns**:
+- `region_id` (Primary Key)
+- `region_name`
+- `country`
 
 ### delivery_events_microbatch.csv
 
-**Rows:** ~515  
-**Role:** Near-real-time delivery events (optional enrichment)
+**Row Count**: 515 rows  
+**Business Role**: Near-real-time delivery tracking events (streaming microbatch format)
 
-| Column |
-|-------|
-| event_id |
-| shipment_id (FK → shipments_daily.shipment_id) |
-| event_type |
-| event_ts |
-| location_scan |
-| scan_quality |
+**Columns**:
+- `event_id` (Unique event identifier)
+- `shipment_id` (Foreign Key → `shipments_daily.shipment_id`)
+- `event_type` (Packed / Dispatched / InTransit / Delivered / etc.)
+- `event_ts` (Event timestamp)
+- `location_scan` (Scan location)
+- `scan_quality` (Good / Poor / Unreadable)
 
 ---
 
 ## Data Generation & Scale-Up Rules
 
-### Volume Rules
-- Fact data scaled by **appending**, not replacing
-- Incremental growth supported (ADF-style ingestion)
-- Duplicates intentionally retained for dedup testing
-
----
+### Volume Scaling Rules
+- Fact table scaled using **append-only** pattern (original data preserved)
+- Supports incremental ingestion patterns (ADF-style)
+- Intentional duplicates retained for deduplication logic testing
 
 ### Foreign Key Integrity Rules
-- No new foreign-key values introduced
-- All non-null FKs must exist in dimension tables
-- Validation performed using **distinct FK vs dim key anti-joins**
+- No new foreign-key values introduced beyond existing dimension domains
+- All non-NULL foreign keys guaranteed to exist in target dimension tables
+- Validation method: DISTINCT FK values vs dimension key anti-join
 
-| Fact Column | Dimension |
-|------------|-----------|
-| warehouse_id | warehouses |
-| region_id | regions |
-| carrier_id | carriers (NULL allowed) |
+**Foreign Key Mapping**:
+| Fact Column | Dimension Table |
+|-------------|----------------|
+| `warehouse_id` | `warehouses` |
+| `region_id` | `regions` |
+| `carrier_id` | `carriers` (NULL values permitted) |
 
----
+### shipment_id Generation Rules
+- Original format preserved: `SHPxxxxx`
+- Primarily unique identifiers
+- 0.5–1% exact duplicates intentionally retained
 
-### shipment_id Rules
-- Format preserved (SHPxxxxx)
-- Mostly unique
-- ~0.5–1% exact duplicates retained
+### Date & Time Generation Rules
 
----
+**shipment_date**:
+- Distributed across multiple months
+- No future dates relative to load date
 
-### Date & Time Rules
+**delivery_days**:
+- Originally entirely NULL in source extract
+- Generated using random distribution (1–7 days typical)
 
-**shipment_date**
-- Spread across multiple months
-- No future dates
+**delivery_date**:
+- Calculated as `shipment_date + delivery_days`
+- NULL anomalies preserved from source
 
-**delivery_days**
-- Originally entirely NULL in source data
-- Generated randomly (1–7 days)
+**created_ts**:
+- Typically same day or slightly before `shipment_date`
+- Supports incremental processing and deduplication logic
 
-**delivery_date**
-- Derived as shipment_date + delivery_days
-- Nullable anomalies allowed
+### shipment_cost Generation Rules
+- Primary range: INR 50–5,000
+- 3–5% records contain NULL values
+- 1% records contain high outlier values
+- Small percentage contain zero or negative values
 
-**created_ts**
-- Same day or slightly before shipment_date
-- Supports incremental processing and dedup logic
+### package_weight_kg Generation Rules
+- Typical business range: 0.5–50 kg
+- Outlier values permitted for realism
 
----
-
-### shipment_cost Rules
-- Majority between INR 50–5,000
-- ~3–5% NULL values
-- ~1% high outliers
-- Small percentage zero/negative values
-
----
-
-### package_weight_kg Rules
-- Typical range: 0.5–50 kg
-- Outliers allowed for realism
-
----
-
-### declared_value_inr Rules
-- Range: INR 500–500,000
-- Loosely correlated with priority and weight
-
----
+### declared_value_inr Generation Rules
+- Typical range: INR 500–500,000
+- Loose business correlation with priority level and package weight
 
 ### delivery_status Distribution
-
 | Status | Approximate Percentage |
-|------|------------------------|
+|--------|------------------------|
 | Delivered | 85–90% |
 | In Transit | 8–12% |
 | Delayed | 2–5% |
 
----
-
-### is_fragile Rules
-- Approximately 25% of shipments marked fragile
-
----
+### is_fragile Distribution
+- Approximately 25% of shipments marked as fragile (Y)
 
 ### payment_type Distribution
-
-| Type | Percentage |
-|----|------------|
-| Prepaid | ~65% |
-| COD | ~35% |
-
----
+| Payment Type | Percentage |
+|--------------|------------|
+| Prepaid | 65% |
+| COD | 35% |
 
 ### priority_level Distribution
+| Priority Level | Percentage |
+|----------------|------------|
+| Low | 50% |
+| Medium | 35% |
+| High | 15% |
 
-| Level | Percentage |
-|------|------------|
-| Low | ~50% |
-| Medium | ~35% |
-| High | ~15% |
-
----
-
-### Intentional Data Skew
-- Top 5 warehouses handle ~60% of volume
-- 2–3 carriers dominate shipment volume
-- Metro regions show higher shipment density
+### Intentional Data Distribution Skew
+- Top 5 warehouses handle 60% of total shipment volume
+- 2–3 carriers dominate total shipment volume
+- Metropolitan regions exhibit higher shipment density
 
 ---
 
-## Validation Guarantees
+## Data Validation Guarantees
 
-- Referential integrity validated using distinct-domain comparisons
-- Schema unchanged from original contract
-- Append-safe for ADLS / ADF
-- Ready for Silver-layer DQ checks and Gold star-schema modeling
+- **Schema Compatibility**: Identical to original sample contract
+- **Referential Integrity**: Validated using distinct-domain comparisons
+- **Append Safety**: Compatible with ADLS Gen2 and ADF incremental patterns
+- **Data Quality Ready**: Suitable for Silver-layer DQ validation and Gold-layer star schema modeling
 
 ---
+
+**Dataset ready for production pipeline processing and analytics development.**
