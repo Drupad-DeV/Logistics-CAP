@@ -98,7 +98,7 @@ The model follows **star schema best practices** for Power BI:
 - Incremental Delta MERGE patterns
 
 > 🧱 **Star Schema Design**  
-> `Model Diagram:` **[Link Here]**
+> `Model Diagram:` **[new.drawio.png](https://github.com/Drupad-DeV/Logistics-CAP/blob/main/new.drawio.png)**
 
 ---
 
