@@ -1,0 +1,12 @@
+shipment_id,origin,destination,shipment_date,delivery_date,quantity,weight,cost,status,carrier
+SH001,Mumbai,Delhi,2024-01-15,2024-01-18,100,250.5,15000.00,delivered,BlueDart
+SH002,Delhi,Bangalore,2024-01-16,2024-01-19,75,180.3,12500.50,delivered,DTDC
+SH003,Chennai,Kolkata,2024-01-17,,50,120.0,8500.00,in_transit,FedEx
+SH004,Mumbai,Chennai,2024-01-18,2024-01-21,120,300.0,18000.00,delivered,BlueDart
+SH005,Bangalore,Mumbai,2024-01-19,,90,220.5,,pending,DHL
+SH001,Mumbai,Delhi,2024-01-15,2024-01-18,100,250.5,15000.00,delivered,BlueDart
+SH006,Delhi,Chennai,2024-01-20,2024-01-23,80,190.0,13500.00,delivered,DTDC
+SH007,Kolkata,Mumbai,2024-01-21,,110,270.5,16500.00,in_transit,BlueDart
+SH008,Chennai,Delhi,2024-01-22,2024-01-25,95,230.0,14500.00,delivered,FedEx
+SH009,Mumbai,Bangalore,2024-01-23,,,,11000.00,pending,DHL
+SH010,Delhi,Kolkata,2024-01-24,2024-01-27,70,170.5,10500.00,delivered,DTDC
