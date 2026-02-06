@@ -42,7 +42,9 @@ class TestDataCleaner(unittest.TestCase):
     def test_standardize_text(self):
         """Test text standardization"""
         result = self.cleaner.standardize_text(self.sample_data, ['name'])
-        self.assertTrue((result['name'].str.islower()).all())
+        # Check non-null values are lowercase
+        non_null_names = result['name'].dropna()
+        self.assertTrue((non_null_names.str.islower()).all())
 
 
 class TestDataValidator(unittest.TestCase):

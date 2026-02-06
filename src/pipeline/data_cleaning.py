@@ -65,7 +65,10 @@ class DataCleaner:
                     if df_clean[col].dtype in ['int64', 'float64']:
                         df_clean[col] = df_clean[col].fillna(df_clean[col].mean())
                     else:
-                        df_clean[col] = df_clean[col].fillna(df_clean[col].mode()[0] if not df_clean[col].mode().empty else 'Unknown')
+                        # Get mode for categorical column
+                        col_mode = df_clean[col].mode()
+                        fill_value = col_mode[0] if not col_mode.empty else 'Unknown'
+                        df_clean[col] = df_clean[col].fillna(fill_value)
             logger.info("Filled missing values")
             
         elif strategy == 'interpolate':

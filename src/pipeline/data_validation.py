@@ -109,6 +109,7 @@ class DataValidator:
     def validate_value_ranges(self, df: pd.DataFrame, range_rules: Dict[str, tuple]) -> Dict[str, bool]:
         """
         Validate that values are within expected ranges
+        Note: NaN values are excluded from range validation
         
         Args:
             df: Input DataFrame
@@ -125,7 +126,9 @@ class DataValidator:
                 continue
                 
             if df[col].dtype in ['int64', 'float64']:
-                within_range = df[col].between(min_val, max_val, inclusive='both').all()
+                # Filter out NaN values before checking range
+                non_null_values = df[col].dropna()
+                within_range = non_null_values.between(min_val, max_val, inclusive='both').all()
                 results[col] = within_range
             else:
                 results[col] = False
