@@ -1,11 +1,5 @@
 # Shipment Data Cleaning Report
 
-**Prepared by: Data Engineering Team**  
-**Date: February 7, 2026**  
-**Platform: Databricks with Spark SQL**  
-**Dataset: Raw Shipment Table (~2.5M rows)**  
-**Goal: Transform to Silver layer for accurate financial, delivery, and operational KPIs in Power BI.**
-
 This report outlines 20 data quality tasks grouped into 4 phases. All implemented via Spark SQL in Databricks notebooks for scalability. **Data profiling is standardized upfront** to quantify issues (e.g., % NULLs, distributions) before cleaning—ensuring tasks are data-driven.
 
 ## Data Profiling Standard Process
