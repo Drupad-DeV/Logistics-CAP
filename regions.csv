@@ -1,9 +1,3 @@
-region_id,region_name,country
-R01,North,IN
-R02,South,IN
-R03,East,IN
-R04,West,IN
-R05,Central,IN
-R06,Northeast,IN
-R07,Northwest,IN
-R08,Southeast,IN
+version https://git-lfs.github.com/spec/v1
+oid sha256:8122e087f3d553f8c2bd4ae42918fb27a223a631a71ad9ddb8724d9de23c5469
+size 155
