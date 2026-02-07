@@ -27,49 +27,49 @@ We follow a repeatable **Bronze → Profile → Silver** workflow in Databricks:
 
 **Focus**: Financial accuracy (profiled: 3.2% NULLs, 0.51% dupes, P99=₹10k)
 
-| Task | Why (Impact from Profiling) | What (Action) | How (Spark SQL Snippet) |
-|------|-----------------------------|---------------|-------------------------|
-| 1 | 3.2% NULLs underreport KPIs | Add `is_null_cost` flag | `CASE WHEN shipmentcost IS NULL THEN true ELSE false END` |
-| 2 | 4.8% NULLs break joins | `carrierid_clean = COALESCE(carrierid, 'UNKNOWN')` | `COALESCE(carrierid, 'UNKNOWN')` |
-| 3 | 0.51% (12k rows) inflate metrics | Keep latest `createdts` | `ROW_NUMBER() OVER (PARTITION BY shipmentid ORDER BY createdts DESC) = 1` |
-| 4 | 0.1% invalids pollute aggs | Add `is_invalid_cost` flag | `CASE WHEN shipmentcost <= 0 THEN true ELSE false END` |
-| 5 | 1% extremes skew mean 20% (Q1=₹50, P99=₹10k) | Cap at profiled P99 | `LEAST(shipmentcost, lit(p99_threshold))` |
+| Task | Task Name | Why It's Crucial |
+|------|-----------|------------------|
+| 1 | Flag NULL shipmentcost | 3.2% NULL costs underreport total/avg cost KPIs by 3-5% |
+| 2 | Impute NULL carrierid | 4.8% NULL carriers break DimCarrier joins, skew performance metrics |
+| 3 | Deduplicate shipmentid | 0.51% (12k rows) duplicates inflate shipment counts & double-count costs |
+| 4 | Flag negative/zero cost | 0.1% negative/zero costs pollute financial aggregates |
+| 5 | Cap outliers (>P99) | 1% extreme outliers skew mean 20% (Q1=₹50, P99=₹10k) |
 
 ## Phase 2: Delivery Date Validation (Tasks 6-8)
 
 **Focus**: SLA reliability (profiled: 2% NULL deliverydate, 0.3% anomalies)
 
-| Task | Why (Impact from Profiling) | What (Action) | How (Spark SQL Snippet) |
-|------|-----------------------------|---------------|-------------------------|
-| 6 | 2.1% blocks SLAs | Add `is_null_delivery` | `CASE WHEN deliverydate IS NULL THEN true ELSE false END` |
-| 7 | 0.3% cause neg days | Add `is_date_anomaly` | `CASE WHEN shipmentdate > deliverydate THEN true ELSE false END` |
-| 8 | 0.4% impossible | Add `is_negative_days` | `CASE WHEN deliverydays < 0 THEN true ELSE false END` |
+| Task | Task Name | Why It's Crucial |
+|------|-----------|------------------|
+| 6 | Flag NULL deliverydate | 2.1% NULL delivery dates block on-time SLA calculations |
+| 7 | Flag shipmentdate > deliverydate | 0.3% date anomalies cause negative transit days |
+| 8 | Flag negative deliverydays | 0.4% negative delivery days make performance KPIs impossible |
 
 ## Phase 3: Category & FK Integrity (Tasks 9-14)
 
 **Focus**: Joins/slicing (profiled: 15% casing variance, 2% orphans)
 
-| Task | Why (Impact from Profiling) | What (Action) | How (Spark SQL Snippet) |
-|------|-----------------------------|---------------|-------------------------|
-| 9 | 3 casing variants break GROUP BY | Title case | `initcap(deliverystatus)` |
-| 10 | 1.2% non-Y/N | Add flag | `isfragile NOT IN ('Y', 'N')` |
-| 11 | 0.8% extras | Add flag | `paymenttype NOT IN ('Prepaid', 'COD')` |
-| 12 | 0.5% invalids | Add flag | `prioritylevel NOT IN ('Low', 'Medium', 'High')` |
-| 13 | 1.7% orphans | Add `is_valid_warehouse` | LEFT JOIN DimWarehouse → IS NULL |
-| 14 | 0.9% orphans | Add `is_valid_region` | LEFT JOIN DimRegion → IS NULL |
+| Task | Task Name | Why It's Crucial |
+|------|-----------|------------------|
+| 9 | Standardize deliverystatus | 3 casing variants break Power BI GROUP BY & filters |
+| 10 | Flag invalid isfragile | 1.2% invalid fragile flags corrupt fragile shipment KPIs |
+| 11 | Flag invalid paymenttype | 0.8% invalid payments break payment type slicers |
+| 12 | Flag invalid prioritylevel | 0.5% invalid priorities prevent service level analysis |
+| 13 | Validate warehouseid FK | 1.7% warehouse orphans cause NULL attributes in star schema |
+| 14 | Validate regionid FK | 0.9% region orphans break geographic rollups |
 
 ## Phase 4: Numerics, Scores & Optimization (Tasks 15-20)
 
 **Focus**: Scalability (profiled: 5% string numerics, weight Q3=20kg)
 
-| Task | Why (Impact from Profiling) | What (Action) | How (Spark SQL Snippet) |
-|------|-----------------------------|---------------|-------------------------|
-| 15 | 4.5% strings fail CAST | To decimal(10,2) | `CAST(packageweightkg AS DECIMAL(10,2))` |
-| 16 | 0.6% impossibles (max=150kg) | Add flag | `weight <= 0 OR weight > 100` |
-| 17 | 0.3% extremes (max=2M) | Add flag | `value < 0 OR value > 1000000` |
-| 18 | 1.8% missing | Derive | `DATEDIFF(deliverydate, shipmentdate)` |
-| 19 | Track bad % (target <5%) | Sum flags | `SUM(CASE WHEN flag THEN 1 ELSE 0 END) AS dq_score` |
-| 20 | Filter slowdowns (10x gain) | By date/IDs | `PARTITIONED BY (year(shipmentdate)) ZORDER BY (warehouseid, carrierid)` |
+| Task | Task Name | Why It's Crucial |
+|------|-----------|------------------|
+| 15 | Cast weight/value to decimal | 4.5% string numerics cause Spark aggregation failures |
+| 16 | Flag invalid packageweightkg | 0.6% impossible weights skew cost-per-kg metrics |
+| 17 | Flag invalid declaredvalueinr | 0.3% extreme values distort insurance/fraud analysis |
+| 18 | Compute deliverydays if NULL | 1.8% missing delivery days prevent SLA monitoring |
+| 19 | Add dq_score (sum flags) | DQ scoring enables quarantine (score>3) & bad row trending |
+| 20 | Partition/Z-ORDER optimization | 2.5M rows need 10x query speedup for Power BI filters |
 
 ## Outlier & Quartile Handling
 
