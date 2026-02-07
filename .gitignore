@@ -1,0 +1,11 @@
+# Large datasets
+*.csv
+*.parquet
+*.json
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
